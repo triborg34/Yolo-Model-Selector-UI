@@ -48,6 +48,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             )
                           : CameraFeed(
                               streamUrl:
+                              Get.find<mainController>().soruceSelection.value=="image" ? 
+                              'http://127.0.0.1:8000/image?imgPath=${ Get.find<mainController>().soruce.value}&path=${Get.find<mainController>().modelPath}' :
                                   'http://127.0.0.1:8000/?source=${Get.find<mainController>().soruce.value}&path=${Get.find<mainController>().modelPath == '' ? "models/yolov8n.pt" : Get.find<mainController>().modelPath}&device=${Get.find<mainController>().deviceSelector.value}&conf=${(Get.find<mainController>().sliderController.value * 100).toInt().toString()}'),
                     ),
                   )

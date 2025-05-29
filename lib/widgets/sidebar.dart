@@ -1,13 +1,14 @@
 
+
 import 'package:cvui/utils/controller.dart';
 
 import 'package:cvui/utils/contsants.dart';
 import 'package:cvui/widgets/coustom_radio_button.dart';
 import 'package:cvui/widgets/coustom_radio_button2.dart';
+import 'package:cvui/widgets/image_selector.dart';
 import 'package:cvui/widgets/model_selector.dart';
 import 'package:cvui/widgets/rtsp_selector.dart';
 import 'package:cvui/widgets/video_selector.dart';
-
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -61,6 +62,11 @@ class sidebar extends StatelessWidget {
             children: [
               CoustomRadioButton(
                 mController: mController,
+                title: 'Image',
+                val: 'image',
+              ),
+              CoustomRadioButton(
+                mController: mController,
                 title: 'WebCam',
                 val: 'webcam',
               ),
@@ -73,15 +79,23 @@ class sidebar extends StatelessWidget {
           SizedBox(
             height: 10,
           ),
-          Obx(
-            () => mController.soruceSelection.value == 'webcam'
-                ? Container()
-                : mController.soruceSelection.value == 'video'
-                    ? VideoSelector(
-                        mController: mController,
-                      )
-                    : RtspSelector(mController: mController),
-          ),
+          Obx(() {
+            switch (mController.soruceSelection.value) {
+              case 'webcam':
+                return Container();
+              case 'video':
+                return VideoSelector(mController: mController);
+              case 'rtsp':
+                return RtspSelector(mController: mController);
+              case 'image':
+                return imageSelector(mController: mController,);
+              default:
+                return Center(
+                  child: Text("data"),
+                );
+            }
+
+          }),
           SizedBox(
             height: 15,
           ),
@@ -141,8 +155,12 @@ class sidebar extends StatelessWidget {
                     } else if (mController.soruceSelection.value == 'rtsp') {
                       mController.soruce.value =
                           mController.rtspcontroller.text;
+
                     
-                    } else {
+                    }else if(mController.soruceSelection.value=='image'){
+                      mController.soruce.value=mController.saveDir.value;
+                    }
+                     else {
                       mController.soruce.value = '0';
                     }
 
@@ -151,14 +169,15 @@ class sidebar extends StatelessWidget {
                   child: Text(
                     "Connect",
                     style: TextStyle(color: borderColor),
-                  ))),SizedBox(height: 15,),
-                        Container(
+                  ))),
+          SizedBox(
+            height: 15,
+          ),
+          Container(
               width: 200,
               height: 50,
               child: ElevatedButton(
                   onPressed: () {
-                   
-
                     mController.url.value = false;
                     Get.find<CameraController>().disconnectAll();
                   },
