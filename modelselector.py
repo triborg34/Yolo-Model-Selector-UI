@@ -1,4 +1,5 @@
 
+import io
 import os
 import shutil
 from cvzone import FPS
@@ -13,20 +14,21 @@ import multiprocessing
 import logging
 from pythonfiles.camera import FreshestFrame
 import threading
-from fastapi import File, UploadFile 
+from fastapi import File, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
 logging.basicConfig(
     level=logging.DEBUG,  # Capture everything from DEBUG and above
-    
+
     format='[%(asctime)s] [%(levelname)s] %(message)s',
     handlers=[
-        logging.FileHandler("log.txt", mode='a', encoding='utf-8'),  # Append mode
+        logging.FileHandler("log.txt", mode='a',
+                            encoding='utf-8'),  # Append mode
         logging.StreamHandler()  # Optional: also show logs in console
     ]
 )
 UPLOAD_DIR_VIDEO = "uploads/video"
-UPLOAD_DIR_MODEL="uploads/models"
+UPLOAD_DIR_MODEL = "uploads/models"
 os.makedirs(UPLOAD_DIR_VIDEO, exist_ok=True)
 os.makedirs(UPLOAD_DIR_MODEL, exist_ok=True)
 lock = threading.Lock()
@@ -45,8 +47,10 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,  # Allow all origins
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],  # Allowed HTTP methods
-    allow_headers=["Origin", "X-Requested-With", "Content-Type", "Accept"],  # Allowed headers
+    allow_methods=["GET", "POST", "PUT", "PATCH",
+                   "DELETE"],  # Allowed HTTP methods
+    allow_headers=["Origin", "X-Requested-With",
+                   "Content-Type", "Accept"],  # Allowed headers
 )
 
 
@@ -69,6 +73,7 @@ def loadModel(path):
     with lock:
         return model
 
+
 def unloadModel():
     global model
     if model is not None:
@@ -84,6 +89,14 @@ def unloadModel():
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
         logging.info('Model unloaded.')
+
+
+def detectonImage(imgPath, path):
+    frame = cv2.imread(imgPath)
+    imgModel = YOLO(path)
+    resuilt = imgModel.predict(frame)[0]
+    return resuilt.plot()
+
 
 def detect(frame, path='models/yolov8n.pt', dev='cpu'):
 
@@ -160,6 +173,7 @@ def shutdown_event():
     unloadModel()
     logging.info("Application shutdown, resources released")
 
+
 @app.get("/")
 async def video_feed(request: fastapi.Request, path: str = Query(...), device: str = Query(...), source: str = Query(...), conf: str = Query(...)):
 
@@ -180,10 +194,18 @@ async def video_feed(request: fastapi.Request, path: str = Query(...), device: s
                                 status_code=400)
 
 
+@app.get('/image')
+def imageDetection(imgPath: str = Query(...), path: str = Query(...)):
+    frame = detectonImage(imgPath, path)
+    _, img_encoded = cv2.imencode(".jpg", frame)
+ 
+    return StreamingResponse(io.BytesIO(img_encoded.tobytes()), media_type="image/jpeg")
+
+
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
     print(file.filename)
-    if file.filename.split('.')[-1] =='pt':
+    if file.filename.split('.')[-1] == 'pt':
         file_location = os.path.join(UPLOAD_DIR_MODEL, file.filename)
     else:
         file_location = os.path.join(UPLOAD_DIR_VIDEO, file.filename)
